@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	cfg "github.com/NBCFB/Dragonfly/config"
-	db "github.com/NBCFB/Dragonfly/helper"
-	ls "github.com/NBCFB/Dragonfly/listener"
+	cfg "github.com/NBCFB/Dragonfly/_config"
+	db "github.com/NBCFB/Dragonfly/_helper"
+	ls "github.com/NBCFB/Dragonfly/_listener"
 	"github.com/gomodule/redigo/redis"
 	"github.com/husobee/vestigo"
 	"github.com/spf13/viper"
@@ -40,7 +40,7 @@ func main() {
 	// Read configuration
 	err := cfg.Reader()
 	if err != nil {
-		log.Printf("Unable to read config file! %v", err.Error())
+		log.Printf("Unable to read _config file! %v", err.Error())
 	}
 
 	var address string
@@ -52,7 +52,7 @@ func main() {
 	// a HTTP server on that net.Listener.
 	listener, err := ls.CreateOrImportListener(address)
 	if err != nil {
-		log.Printf("Unable to create or import a http listener: %v.\n", err)
+		log.Printf("Unable to create or import a http _listener: %v.\n", err)
 		os.Exit(1)
 	}
 	server := startServer(address, listener, r)

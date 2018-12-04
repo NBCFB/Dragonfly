@@ -7,10 +7,10 @@ import (
 )
 
 func Reader() error {
-	// Set config path
-	viper.SetConfigName("config")
+	// Set _config path
+	viper.SetConfigName("_config")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/NBCFB/config/")
+	viper.AddConfigPath("/NBCFB/_config/")
 	viper.SetConfigType("json")
 
 	// Check if file has been changed
@@ -19,7 +19,7 @@ func Reader() error {
 		log.Println("Config file changed:", e.Name)
 	})
 
-	// Read config file
+	// Read _config file
 	err := viper.ReadInConfig()
 	if err != nil {
 		return err

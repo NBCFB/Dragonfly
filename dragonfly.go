@@ -4,9 +4,7 @@ import (
 	"flag"
 	"fmt"
 	cfg "github.com/NBCFB/Dragonfly/config"
-	db "github.com/NBCFB/Dragonfly/helper"
 	ls "github.com/NBCFB/Dragonfly/listener"
-	"github.com/gomodule/redigo/redis"
 	"github.com/husobee/vestigo"
 	"github.com/spf13/viper"
 	"log"
@@ -69,7 +67,7 @@ func main() {
 func startServer(addr string, ln net.Listener, router *vestigo.Router) *http.Server {
 
 	httpServer := &http.Server{
-		//Addr: "0.0.0.0:8081",
+		//Addr: "0.0.0.0:8787",
 		Addr: addr,
 		//Set timeouts to avoid Slowloris attacks.
 		WriteTimeout: time.Second * 15,
@@ -80,41 +78,6 @@ func startServer(addr string, ln net.Listener, router *vestigo.Router) *http.Ser
 
 	go httpServer.Serve(ln)
 	log.Printf("HTTP Server NBCFB-Dragonfly started [PID:%v].\n", os.Getpid())
-
-	
-
-	//c.Do("FLUSHALL")
-	//c.Do("SET", "user:1:1:1", 1)
-	// c.Do("SET", "user:1:1:3", 0)
-	//c.Do("SET", "user:1:2:1", 1)
-	//c.Do("SET", "user:2:1:1", 1)
-
-	iter := 0
-	keys := []string{}
-	pattern := "user:1:*"
-	for {
-		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		iter, _ = redis.Int(arr[0], nil)
-		k, _ := redis.Strings(arr[1], nil)
-		keys = append(keys, k...)
-		for _, key :=  range(keys) {
-			v, err := redis.Bytes(c.Do("GET", key))
-			if err != nil {
-				log.Println(err.Error())
-			} else {
-				log.Println("key:", key, "value:", string(v))
-			}
-		}
-
-		if iter == 0 {
-			break
-		}
-
-	}
 
 	return httpServer
 }

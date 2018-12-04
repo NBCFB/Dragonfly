@@ -20,8 +20,7 @@ func (e *StatusOperationError) Error() string {
 }
 
 func SetStatus(cs CaseStatus) error {
-	var pool = db.NewPool()
-	c := pool.Get()
+	c := db.Pool.Get()
 	defer c.Close()
 
 	_, err := c.Do("SET", toKey(cs.UserId, cs.CorpId, cs.CaseId), cs.Status)
@@ -34,8 +33,7 @@ func SetStatus(cs CaseStatus) error {
 }
 
 func BatchSetStatus(css []CaseStatus) error {
-	var pool = db.NewPool()
-	c := pool.Get()
+	c := db.Pool.Get()
 	defer c.Close()
 
 	c.Send("MULTI")
@@ -52,8 +50,7 @@ func BatchSetStatus(css []CaseStatus) error {
 }
 
 func DeleteStatus(cs CaseStatus) error {
-	var pool = db.NewPool()
-	c := pool.Get()
+	c := db.Pool.Get()
 	defer c.Close()
 
 	_, err := c.Do("DEL", toKey(cs.UserId, cs.CorpId, cs.CaseId))
@@ -66,8 +63,7 @@ func DeleteStatus(cs CaseStatus) error {
 }
 
 func GetStatusByMatch(cs CaseStatus) ([]int, error) {
-	var pool = db.NewPool()
-	c := pool.Get()
+	c := db.Pool.Get()
 	defer c.Close()
 
 	vals := []int{}
@@ -98,8 +94,7 @@ func GetStatusByMatch(cs CaseStatus) ([]int, error) {
 }
 
 func GetStatusByKey(cs CaseStatus) (int, error) {
-	var pool = db.NewPool()
-	c := pool.Get()
+	c := db.Pool.Get()
 	defer c.Close()
 
 	v, err := redis.Int(c.Do("GET", toKey(cs.UserId, cs.CorpId, cs.CaseId)))

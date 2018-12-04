@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func newPool() *redis.Pool {
+func NewPool() *redis.Pool {
 	mode := viper.GetString("Mode")
 	host := viper.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
 	pass := viper.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
@@ -21,11 +21,5 @@ func newPool() *redis.Pool {
 			return c, err
 		},
 	}
-}
-
-func GetConnection() redis.Conn{
-	var pool = newPool()
-	c := pool.Get()
-	return c
 }
 

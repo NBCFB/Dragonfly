@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	cfg "github.com/NBCFB/Dragonfly/_config"
-	db "github.com/NBCFB/Dragonfly/_helper"
-	ls "github.com/NBCFB/Dragonfly/_listener"
+	cfg "github.com/NBCFB/Dragonfly/config"
+	db "github.com/NBCFB/Dragonfly/helper"
+	ls "github.com/NBCFB/Dragonfly/listener"
 	"github.com/gomodule/redigo/redis"
 	"github.com/husobee/vestigo"
 	"github.com/spf13/viper"
@@ -81,8 +81,7 @@ func startServer(addr string, ln net.Listener, router *vestigo.Router) *http.Ser
 	go httpServer.Serve(ln)
 	log.Printf("HTTP Server NBCFB-Dragonfly started [PID:%v].\n", os.Getpid())
 
-	c := db.GetConnection()
-	defer c.Close()
+	
 
 	//c.Do("FLUSHALL")
 	//c.Do("SET", "user:1:1:1", 1)

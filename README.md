@@ -45,6 +45,17 @@ c := Pool.Get()
 defer c.Close()
 ```  
 
+### Model - CaseStatus
+Here is the only model we use it the package
+```
+type CaseStatus struct {
+	UserId		string	`json:"userId"`
+	CorpId		string	`json:"corpId"`
+	CaseId		string	`json:"caseId"`
+	Status		int		`json:"status"`
+}
+```
+
 ### Change Status
 Here is an example of updating the status of the case(id:1) under corp(id:1) and user(id:1), the new status is 'read'(status:1):
 ```

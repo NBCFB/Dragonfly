@@ -1,0 +1,10 @@
+{
+  "mode": "local_test",
+  "local_test": {
+    "redisDB": {
+      "host":   "172.18.1.187",
+      "pass":   "ilovedragonfly1515"
+    },
+    "host": "localhost"
+  }
+}

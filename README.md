@@ -33,6 +33,12 @@ Put the configuration for Redis connection into **config.json**, the resulted co
 You can add multiple configuration block for different **mode** such as 'prod', 'dev'.
 
 ### Initialise Pool
+Initilise pool creates a new pool for Redis connections. The pool is a variable defined in **redis_pooler.go**
+```
+var (
+	Pool *redis.Pool
+)
+```
 When server starts, or whenever you are about to start interaction with Redis, call init from **redis_pooler.go**
 ```
 ...

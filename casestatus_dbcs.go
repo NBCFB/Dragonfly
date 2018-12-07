@@ -94,7 +94,7 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 		// Scan using MATCH and the pattern
 		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
 		if err != nil {
-			return nil, &StatusOperationError{Operation: "SEARCH", UserId: userId, CorpId: corpId,
+			return nil, &StatusOperationError{Operation: "SEARCH-SCAN", UserId: userId, CorpId: corpId,
 				CaseId: caseId, ErrMsg: err.Error()}
 		}
 
@@ -106,7 +106,7 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 			// Get value based on the obtained key
 			v, err := redis.Int(c.Do("GET", k))
 			if err != nil {
-				return css, &StatusOperationError{Operation: "SEARCH", UserId: userId, CorpId: corpId, CaseId: caseId,
+				return css, &StatusOperationError{Operation: "SEARCH-GET_KEY", UserId: userId, CorpId: corpId, CaseId: caseId,
 					ErrMsg: err.Error()}
 			}
 

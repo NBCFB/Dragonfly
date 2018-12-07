@@ -16,8 +16,8 @@ type StatusOperationError struct {
 }
 
 func (e *StatusOperationError) Error() string {
-	return fmt.Sprintf("operation[%s] on [UserId:%s, CorpId:%s, CaseId:%s] %s", e.UserId, e.CorpId, e.CaseId,
-		e.ErrMsg)
+	return fmt.Sprintf("operation[%s] on [UserId:%s, CorpId:%s, CaseId:%s] %s", e.Operation, e.UserId, e.CorpId,
+		e.CaseId, e.ErrMsg)
 }
 
 var PATTERN_SETUP_ERR = errors.New("unable to setup pattern for key matching, userId is empty")

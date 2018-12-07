@@ -1,0 +1,13 @@
+{
+  "mode": "local_test",
+  "local_test": {
+    "redisDB": {
+      "host":             "172.18.1.187",
+      "pass":             "ilovedragonfly1515",
+      "maxIdle":          5,
+      "maxActive":        12000,
+      "maxConnLifetime":  3,
+      "idleTimeout":      200
+    }
+  }
+}

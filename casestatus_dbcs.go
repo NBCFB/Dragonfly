@@ -54,7 +54,7 @@ func BatchSetStatus(css []CaseStatus) error {
 	c.Send("MULTI")
 	for _, cs := range(css) {
 		key := toKey(cs.UserId, cs.CorpId, cs.CaseId)
-		c.Send("DEL", key)
+		c.Send("SET", key)
 	}
 	_, err := c.Do("EXEC")
 	if err != nil {

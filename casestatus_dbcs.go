@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"strings"
 )
 
 /* ---  Error definition --- */
@@ -101,25 +102,29 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 		if arr != nil && len(arr) > 0 {
 			// Get a matched key
 			iter, _ = redis.Int(arr[0], nil)
-			k, _ := redis.Strings(arr[1], nil)
+			ks, _ := redis.Strings(arr[1], nil)
 
-			// Get value based on the obtained key
-			v, err := redis.Int(c.Do("GET", k))
-			if err != nil {
-				if err != redis.ErrNil {
-					return css, &StatusOperationError{Operation: "SEARCH-GET_VAL", UserId: userId, CorpId: corpId, CaseId: caseId,
-						ErrMsg: err.Error()}
+			for _, k := range(ks) {
+				// Get value based on the obtained key
+				v, err := redis.Int(c.Do("GET", k))
+				if err != nil {
+					if err != redis.ErrNil {
+						return css, &StatusOperationError{Operation: "SEARCH-GET_VAL", UserId: userId, CorpId: corpId, CaseId: caseId,
+							ErrMsg: err.Error()}
+					}
 				}
-			}
 
-			// Store it
-			cs := CaseStatus{
-				UserId: userId,
-				CorpId: corpId,
-				CaseId: caseId,
-				Status: v,
+				keyItems := strings.Split(k, ":")
+
+				// Store it
+				cs := CaseStatus{
+					UserId: keyItems[1],
+					CorpId: keyItems[2],
+					CaseId: keyItems[3],
+					Status: v,
+				}
+				css = append(css, cs)
 			}
-			css = append(css, cs)
 		}
 
 		if iter == 0 {

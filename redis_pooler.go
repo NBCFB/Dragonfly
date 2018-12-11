@@ -14,19 +14,19 @@ var (
 	Pool *redis.Pool
 )
 
-func Init() {
-	Pool = 	newPool()
+func Init(config *viper.Viper) {
+	Pool = 	newPool(config)
 	removeHooks()
 }
 
-func newPool() *redis.Pool {
-	mode := viper.GetString("Mode")
-	host := viper.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
-	pass := viper.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
-	maxIdle := viper.GetInt(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxIdle"))
-	maxActive := viper.GetInt(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxActive"))
-	maxConnLifetime := viper.GetDuration(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxConnLifetime"))
-	idleTimeout := viper.GetDuration(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "idleTimeout"))
+func newPool(config *viper.Viper) *redis.Pool {
+	mode := config.GetString("Mode")
+	host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
+	pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
+	maxIdle := config.GetInt(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxIdle"))
+	maxActive := config.GetInt(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxActive"))
+	maxConnLifetime := config.GetDuration(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "maxConnLifetime"))
+	idleTimeout := config.GetDuration(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "idleTimeout"))
 
 	return &redis.Pool{
 		MaxIdle:   maxIdle,

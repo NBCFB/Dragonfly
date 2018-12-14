@@ -23,7 +23,6 @@ jobs:
         keys:
           - go-mod-v1-{{ checksum "go.sum" }}
 
-    - run: go get -v -t -d ./...
     - run: go test -race | tee $TEST_RESULTS/go-test.out
 
     - save_cache:

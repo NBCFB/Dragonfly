@@ -6,8 +6,6 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.11
-        environment:
-          GO111MODULE: "ON"
 
     working_directory: /go/src/github.com/NBCFB/Dragonfly
 
@@ -17,7 +15,14 @@ jobs:
     steps:
     - checkout
 
-    - run: mkdir -p ${TEST_RESULTS} # Make test result folder
+    # Test
+    - run:
+        name: Run test
+        command: |
+          go get github.com/jstemmer/go-junit-report
+          mkdir -p ${TEST_RESULTS} # Make test result folder
+          trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+          go test -v . | tee $TEST_RESULTS/go-test.out
 
     - restore_cache:
         keys:

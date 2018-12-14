@@ -11,6 +11,9 @@ jobs:
 
     working_directory: /go/src/github.com/NBCFB/Dragonfly
 
+    environment: # environment variables for the build itself
+      TEST_RESULTS: /tmp/test-results # path to where test results will be saved
+
     steps:
     - checkout
 

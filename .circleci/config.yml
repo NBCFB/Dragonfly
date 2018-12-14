@@ -11,9 +11,6 @@ jobs:
 
     working_directory: /go/src/github.com/NBCFB/Dragonfly
 
-    environment: # environment variables for the build itself
-      TEST_RESULTS: /tmp/test-results # path to where test results will be saved
-
     steps:
     - checkout
 
@@ -29,18 +26,9 @@ jobs:
     # Test
     - run:
         name: Run test
-        command: |
-          mkdir -p ${TEST_RESULTS}
-          go test . | tee $TEST_RESULTS/go-test.out
+        command: go test
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}
         paths:
           - "/go/pkg/mod"
-
-    - store_artifacts: # Upload test summary for display in Artifacts
-        path: /tmp/test-results
-        destination: raw-test-output
-
-    - store_test_results:
-        path: /tmp/test-results

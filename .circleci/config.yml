@@ -27,13 +27,6 @@ jobs:
         keys:
           - go-mod-v1-{{ checksum "go.sum" }}
 
-    # Install dependency
-    - run:
-        name: Install Package
-        command: |
-          go get -u .
-          go mod vendor
-
     # Test
     - run:
         name: Run test

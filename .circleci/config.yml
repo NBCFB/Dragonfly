@@ -30,7 +30,7 @@ jobs:
     - run:
         name: Run test
         command: |
-          mkdir -p $TEST_RESULTS
+          mkdir -p ${TEST_RESULTS}
           go test . | tee $TEST_RESULTS/go-test.out
 
     - save_cache:

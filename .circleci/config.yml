@@ -23,9 +23,9 @@ jobs:
         name: Show current branch
         command: echo ${CIRCLE_BRANCH}
 
-    - restore_cache: # restores saved cache if no changes are detected since last run
+    - restore_cache:
         keys:
-        - v1-pkg-cache
+          - go-mod-v1-{{ checksum "go.sum" }}
 
     # Install dependency
     - run:
@@ -43,10 +43,10 @@ jobs:
           trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
           go test -v . | tee $TEST_RESULTS/go-test.out
 
-    - save_cache: # Store cache in the /go/pkg directory
-        key: v1-pkg-cache
+    - save_cache:
+        key: go-mod-v1-{{ checksum "go.sum" }}
         paths:
-        - "/go/pkg"
+          - "/go/pkg/mod"
 
     - store_artifacts: # Upload test summary for display in Artifacts
         path: /tmp/test-results

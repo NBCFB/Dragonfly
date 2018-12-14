@@ -14,19 +14,14 @@ jobs:
     steps:
     - checkout
 
-    # Log the current branch
-    - run:
-        name: Show current branch
-        command: echo ${CIRCLE_BRANCH}
+    - run: mkdir -p ${TEST_RESULTS} # Make test result folder
 
     - restore_cache:
         keys:
           - go-mod-v1-{{ checksum "go.sum" }}
 
-    # Test
-    - run:
-        name: Run test
-        command: go test ./...
+    - run: go get -v -t -d ./...
+    - run: go test -race | tee $TEST_RESULTS/go-test.out
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

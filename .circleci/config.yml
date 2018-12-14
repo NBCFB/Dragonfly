@@ -34,7 +34,7 @@ jobs:
           go get github.com/jstemmer/go-junit-report
           mkdir -p ${TEST_RESULTS} # Make test result folder
           trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-          go test -v . | tee $TEST_RESULTS/go-test.out
+          go test . | tee $TEST_RESULTS/go-test.out
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

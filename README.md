@@ -1,5 +1,7 @@
 # Dragonfly ![](https://media.giphy.com/media/3o7qDOQLYrStOriGC4/giphy.gif)
 
+[![CircleCI](https://circleci.com/gh/NBCFB/Dragonfly/tree/develop.svg?style=svg&circle-token=b846cc3cd91a7f556d8db84c7210ee9fbb38944c)]
+
 Case Status Service Package
 
 

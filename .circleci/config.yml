@@ -26,7 +26,7 @@ jobs:
     # Test
     - run:
         name: Run test
-        command: go test
+        command: go test .
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

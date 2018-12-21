@@ -80,8 +80,10 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 
 	currentV, err := redis.Int(c.Do("GET", key))
 	if err != nil {
-		return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId,
-			CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+		if err != redis.ErrNil {
+			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId,
+				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+		}
 	}
 
 	return currentV, count, nil

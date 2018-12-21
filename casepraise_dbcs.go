@@ -40,8 +40,10 @@ func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
 
 	_, err = c.Do("SET", key, newV)
 	if err != nil {
-		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
-			UserId: userId, ErrMsg: err.Error()}
+		if err != redis.ErrNil {
+			return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+				UserId: userId, ErrMsg: err.Error()}
+		}
 	}
 
 	return newV, nil
@@ -66,8 +68,10 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 		// Scan using MATCH and the pattern
 		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
 		if err != nil {
-			return currentV, count, &PraiseOperationError{Operation: "SEARCH-PRAISE-SCAN", CaseId: caseId,
-				CaseTemplateId: caseTemplateId, UserId: "*", ErrMsg: err.Error()}
+			if err != redis.ErrNil {
+				return currentV, count, &PraiseOperationError{Operation: "SEARCH-PRAISE-SCAN", CaseId: caseId,
+					CaseTemplateId: caseTemplateId, UserId: "*", ErrMsg: err.Error()}
+			}
 		}
 
 		iter, _ = redis.Int(arr[0], nil)
@@ -80,6 +84,7 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 
 	currentV, err := redis.Int(c.Do("GET", key))
 	if err != nil {
+		fmt.Println(err == redis.ErrNil)
 		if err != redis.ErrNil {
 			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId,
 				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}

@@ -37,7 +37,7 @@ func SetStatus(userId, corpId, caseId string, status int) error {
 	c := Pool.Get()
 	defer c.Close()
 
-	_, err := c.Do("SET-STATUS", toCaseStatusKey(userId, corpId, caseId), status)
+	_, err := c.Do("SET", toCaseStatusKey(userId, corpId, caseId), status)
 	if err != nil {
 		return &StatusOperationError{Operation: "SET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 			ErrMsg: err.Error()}
@@ -69,7 +69,7 @@ func DeleteStatus(userId, corpId, caseId string) error {
 	c := Pool.Get()
 	defer c.Close()
 
-	_, err := c.Do("DEL-STATUS", toCaseStatusKey(userId, corpId, caseId))
+	_, err := c.Do("DEL", toCaseStatusKey(userId, corpId, caseId))
 	if err != nil {
 		return &StatusOperationError{Operation: "DEL-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 			ErrMsg: err.Error()}
@@ -140,7 +140,7 @@ func GetStatusByKey(userId, corpId, caseId string) (int, error) {
 	c := Pool.Get()
 	defer c.Close()
 
-	v, err := redis.Int(c.Do("GET-STATUS", toCaseStatusKey(userId, corpId, caseId)))
+	v, err := redis.Int(c.Do("GET", toCaseStatusKey(userId, corpId, caseId)))
 	if err != nil {
 		return -1, &StatusOperationError{Operation: "GET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 				ErrMsg: err.Error()}

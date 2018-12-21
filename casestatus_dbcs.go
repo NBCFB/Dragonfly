@@ -37,9 +37,9 @@ func SetStatus(userId, corpId, caseId string, status int) error {
 	c := Pool.Get()
 	defer c.Close()
 
-	_, err := c.Do("SET", toKey(userId, corpId, caseId), status)
+	_, err := c.Do("SET-STATUS", toCaseStatusKey(userId, corpId, caseId), status)
 	if err != nil {
-		return &StatusOperationError{Operation: "SET", UserId: userId, CorpId: corpId, CaseId: caseId,
+		return &StatusOperationError{Operation: "SET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 			ErrMsg: err.Error()}
 	}
 
@@ -53,12 +53,12 @@ func BatchSetStatus(css []CaseStatus) error {
 
 	c.Send("MULTI")
 	for _, cs := range(css) {
-		key := toKey(cs.UserId, cs.CorpId, cs.CaseId)
+		key := toCaseStatusKey(cs.UserId, cs.CorpId, cs.CaseId)
 		c.Send("SET", key, cs.Status)
 	}
 	_, err := c.Do("EXEC")
 	if err != nil {
-		return &StatusOperationError{Operation: "B-SET", UserId: "*", CorpId: "*", CaseId: "*", ErrMsg: err.Error()}
+		return &StatusOperationError{Operation: "B-SET-STATUS", UserId: "*", CorpId: "*", CaseId: "*", ErrMsg: err.Error()}
 	}
 
 	return nil
@@ -69,9 +69,9 @@ func DeleteStatus(userId, corpId, caseId string) error {
 	c := Pool.Get()
 	defer c.Close()
 
-	_, err := c.Do("DEL", toKey(userId, corpId, caseId))
+	_, err := c.Do("DEL-STATUS", toCaseStatusKey(userId, corpId, caseId))
 	if err != nil {
-		return &StatusOperationError{Operation: "DEL", UserId: userId, CorpId: corpId, CaseId: caseId,
+		return &StatusOperationError{Operation: "DEL-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 			ErrMsg: err.Error()}
 	}
 
@@ -85,7 +85,7 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 	defer c.Close()
 
 	// Setup search pattern given parameters
-	pattern := toPattern(userId, corpId, caseId)
+	pattern := toCaseStatusPattern(userId, corpId, caseId)
 	if pattern == "<invalid>" {
 		return nil, PATTERN_SETUP_ERR
 	}
@@ -95,7 +95,7 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 		// Scan using MATCH and the pattern
 		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
 		if err != nil {
-			return nil, &StatusOperationError{Operation: "SEARCH-SCAN", UserId: userId, CorpId: corpId,
+			return nil, &StatusOperationError{Operation: "SEARCH-STATUS-SCAN", UserId: userId, CorpId: corpId,
 				CaseId: caseId, ErrMsg: err.Error()}
 		}
 
@@ -109,8 +109,8 @@ func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
 				v, err := redis.Int(c.Do("GET", k))
 				if err != nil {
 					if err != redis.ErrNil {
-						return css, &StatusOperationError{Operation: "SEARCH-GET_VAL", UserId: userId, CorpId: corpId, CaseId: caseId,
-							ErrMsg: err.Error()}
+						return css, &StatusOperationError{Operation: "SEARCH-STATUS-GET", UserId: userId,
+							CorpId: corpId, CaseId: caseId, ErrMsg: err.Error()}
 					}
 				}
 
@@ -140,9 +140,9 @@ func GetStatusByKey(userId, corpId, caseId string) (int, error) {
 	c := Pool.Get()
 	defer c.Close()
 
-	v, err := redis.Int(c.Do("GET", toKey(userId, corpId, caseId)))
+	v, err := redis.Int(c.Do("GET-STATUS", toCaseStatusKey(userId, corpId, caseId)))
 	if err != nil {
-		return -1, &StatusOperationError{Operation: "GET", UserId: userId, CorpId: corpId, CaseId: caseId,
+		return -1, &StatusOperationError{Operation: "GET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
 				ErrMsg: err.Error()}
 	}
 
@@ -150,12 +150,12 @@ func GetStatusByKey(userId, corpId, caseId string) (int, error) {
 }
 
 // Convert to a redis key
-func toKey(userId, corpId, caseId string) string {
+func toCaseStatusKey(userId, corpId, caseId string) string {
 	return fmt.Sprintf("user:%s:%s:%s", userId, corpId, caseId)
 }
 
 // Convert to a search pattern
-func toPattern(userId, corpId, caseId string) string {
+func toCaseStatusPattern(userId, corpId, caseId string) string {
 	if userId == "" {
 		return "<invalid>"
 	} else {

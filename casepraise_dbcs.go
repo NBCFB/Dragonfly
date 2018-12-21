@@ -19,17 +19,29 @@ func (e *PraiseOperationError) Error() string {
 		e.Operation, e.CaseId, e.CaseTemplateId, e.UserId, e.ErrMsg)
 }
 
-func AddPraise(caseId, caseTemplateId, userId string) (error) {
+func AddPraise(caseId, caseTemplateId, userId string) (bool, error) {
 	c := Pool.Get()
 	defer c.Close()
 
-	_, err := c.Do("SET", toCasePraiseKey(caseId, caseTemplateId, userId), 1)
+	key := toCasePraiseKey(caseId, caseTemplateId, userId)
+
+	exist, err := redis.Bool(c.Do("EXISTS", key))
 	if err != nil {
-		return &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+		return false, &PraiseOperationError{Operation: "CHECK-EXISTENCE", CaseId: caseId, CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
-	return nil
+	if exist {
+		return false, nil
+	}
+
+	_, err = c.Do("SET", key, 1)
+	if err != nil {
+		return false, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+			UserId: userId, ErrMsg: err.Error()}
+	}
+
+	return true, nil
 }
 
 func GetPraiseCount(caseId, caseTemplateId string) (int, error) {

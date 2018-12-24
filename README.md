@@ -6,7 +6,7 @@ Case Status Service Package
 
 
 ## Install 
-`go get https://github.com/NBCFB/Dragonfly`
+`go get github.com/NBCFB/Dragonfly`
 
 ## How-To-Use
 

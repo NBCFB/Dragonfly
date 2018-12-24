@@ -41,8 +41,6 @@ func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
 		newV = 1
 	}
 
-	fmt.Println("Ready to set")
-
 	_, err = c.Do("SET", key, newV)
 	if err != nil {
 		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
@@ -105,7 +103,6 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 
 	currentV, err := redis.Int(c.Do("GET", key))
 	if err != nil {
-		fmt.Println(err == redis.ErrNil)
 		if err != redis.ErrNil {
 			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId,
 				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}

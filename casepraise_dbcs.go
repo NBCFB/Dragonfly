@@ -25,11 +25,14 @@ func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
 	defer c.Close()
 
 	key := toCasePraiseKey(caseId, caseTemplateId, userId)
+	fmt.Println(key)
 
 	v, err := redis.Int(c.Do("GET", key))
 	if err != nil {
-		return newV, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
-			UserId: userId, ErrMsg: err.Error()}
+		if err != redis.ErrNil {
+			return newV, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+				UserId: userId, ErrMsg: err.Error()}
+		}
 	}
 
 	if v == 1 {
@@ -38,12 +41,12 @@ func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
 		newV = 1
 	}
 
+	fmt.Println("Ready to set")
+
 	_, err = c.Do("SET", key, newV)
 	if err != nil {
-		if err != redis.ErrNil {
-			return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
-				UserId: userId, ErrMsg: err.Error()}
-		}
+		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+			UserId: userId, ErrMsg: err.Error()}
 	}
 
 	return newV, nil
@@ -74,11 +77,29 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 			}
 		}
 
-		iter, _ = redis.Int(arr[0], nil)
-		count += 1
+		if arr != nil && len(arr) > 0 {
+			// Get a matched key
+			iter, _ = redis.Int(arr[0], nil)
+			ks, _ := redis.Strings(arr[1], nil)
 
-		if iter == 0 {
-			break
+			for _, k := range(ks) {
+				// Get value based on the obtained key
+				v, err := redis.Int(c.Do("GET", k))
+				if err != nil {
+					if err != redis.ErrNil {
+						return currentV, count, &PraiseOperationError{Operation: "SEARCH-STATUS-GET", CaseId: caseId,
+							CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+					}
+				}
+
+				if v == 1 {
+					count  += 1
+				}
+			}
+
+			if iter == 0 {
+				break
+			}
 		}
 	}
 

@@ -8,29 +8,28 @@ import (
 /* ---  Error definition --- */
 type PraiseOperationError struct {
 	Operation		string
-	CaseId			string
 	CaseTemplateId	string
 	UserId			string
 	ErrMsg			string
 }
 
 func (e *PraiseOperationError) Error() string {
-	return fmt.Sprintf("operation[%s] on [CaseId:%s, CaseTemplateId:%s, UserId:%s] %s",
-		e.Operation, e.CaseId, e.CaseTemplateId, e.UserId, e.ErrMsg)
+	return fmt.Sprintf("operation[%s] on [CaseTemplateId:%s, UserId:%s] %s",
+		e.Operation, e.CaseTemplateId, e.UserId, e.ErrMsg)
 }
 
-func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
+func SetPraise(caseTemplateId, userId string) (int, error) {
 	newV := -1
 	c := Pool.Get()
 	defer c.Close()
 
-	key := toCasePraiseKey(caseId, caseTemplateId, userId)
+	key := toCasePraiseKey(caseTemplateId, userId)
 	fmt.Println(key)
 
 	v, err := redis.Int(c.Do("GET", key))
 	if err != nil {
 		if err != redis.ErrNil {
-			return newV, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+			return newV, &PraiseOperationError{Operation: "GET-PRAISE", CaseTemplateId: caseTemplateId,
 				UserId: userId, ErrMsg: err.Error()}
 		}
 	}
@@ -43,14 +42,14 @@ func SetPraise(caseId, caseTemplateId, userId string) (int, error) {
 
 	_, err = c.Do("SET", key, newV)
 	if err != nil {
-		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseId: caseId, CaseTemplateId: caseTemplateId,
+		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
 	return newV, nil
 }
 
-func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
+func GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
 	count := 0
 	currentV := -1
 
@@ -58,8 +57,8 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 	defer c.Close()
 
 	// Setup key and search pattern given parameters
-	key := toCasePraiseKey(caseId, caseTemplateId, userId)
-	pattern := toCasePraisePattern(caseId, caseTemplateId)
+	key := toCasePraiseKey(caseTemplateId, userId)
+	pattern := toCasePraisePattern(caseTemplateId)
 	if pattern == "<invalid>" {
 		return currentV, count, PATTERN_SETUP_ERR
 	}
@@ -70,7 +69,7 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
 		if err != nil {
 			if err != redis.ErrNil {
-				return currentV, count, &PraiseOperationError{Operation: "SEARCH-PRAISE-SCAN", CaseId: caseId,
+				return currentV, count, &PraiseOperationError{Operation: "SEARCH-PRAISE-SCAN",
 					CaseTemplateId: caseTemplateId, UserId: "*", ErrMsg: err.Error()}
 			}
 		}
@@ -85,7 +84,7 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 				v, err := redis.Int(c.Do("GET", k))
 				if err != nil {
 					if err != redis.ErrNil {
-						return currentV, count, &PraiseOperationError{Operation: "SEARCH-STATUS-GET", CaseId: caseId,
+						return currentV, count, &PraiseOperationError{Operation: "SEARCH-STATUS-GET",
 							CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
 					}
 				}
@@ -104,8 +103,8 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 	currentV, err := redis.Int(c.Do("GET", key))
 	if err != nil {
 		if err != redis.ErrNil {
-			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseId: caseId,
-				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseTemplateId: caseTemplateId,
+				UserId: userId, ErrMsg: err.Error()}
 		}
 	}
 
@@ -113,11 +112,11 @@ func GetPraiseCount(caseId, caseTemplateId, userId string) (int, int, error) {
 }
 
 // Convert to a redis key
-func toCasePraiseKey(caseId, caseTemplateId, userId string) string {
-	return fmt.Sprintf("case:%s:%s:%s", caseId, caseTemplateId, userId)
+func toCasePraiseKey(caseTemplateId, userId string) string {
+	return fmt.Sprintf("cp:%s:%s", caseTemplateId, userId)
 }
 
 // Convert to a search pattern
-func toCasePraisePattern(caseId, caseTemplateId string) string {
-	return fmt.Sprintf("case:%s:%s:*", caseId, caseTemplateId)
+func toCasePraisePattern(caseTemplateId string) string {
+	return fmt.Sprintf("cp:%s:*", caseTemplateId)
 }

@@ -14,7 +14,7 @@ type PraiseOperationError struct {
 }
 
 func (e *PraiseOperationError) Error() string {
-	return fmt.Sprintf("operation[%s] on [CaseId:%s, CaseTemplateId:%s, UserId:%s] %s",
+	return fmt.Sprintf("operation[%s] on [CaseTemplateId:%s, UserId:%s] %s",
 		e.Operation, e.CaseTemplateId, e.UserId, e.ErrMsg)
 }
 

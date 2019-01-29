@@ -1,10 +1,8 @@
 package Dragonfly
 
 import (
-	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
-	"strings"
+	"github.com/go-redis/redis"
 )
 
 /* ---  Error definition --- */
@@ -21,8 +19,6 @@ func (e *StatusOperationError) Error() string {
 		e.CaseId, e.ErrMsg)
 }
 
-var PATTERN_SETUP_ERR = errors.New("unable to setup pattern for key matching, userId is empty")
-
 /* --- Model definition --- */
 type CaseStatus struct {
 	UserId		string	`json:"userId"`
@@ -31,123 +27,105 @@ type CaseStatus struct {
 	Status		int		`json:"status"`
 }
 
-/* --- Function definitions --- */
-// Update status for a case
-func SetStatus(userId, corpId, caseId string, status int) error {
-	c := Pool.Get()
-	defer c.Close()
-
-	_, err := c.Do("SET", toCaseStatusKey(userId, corpId, caseId), status)
+func SetStatus(userId, corpId, caseId string, val int) error {
+	client, err := NewConnection()
 	if err != nil {
-		return &StatusOperationError{Operation: "SET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
-			ErrMsg: err.Error()}
+		return err
+	}
+
+	key := toCaseStatusKey(userId, corpId, caseId)
+	if _, err := client.Get(key).Result(); err != nil && err != redis.Nil {
+		return &StatusOperationError{Operation: "Set Status :: Validate Key", UserId: userId, CorpId: corpId,
+			CaseId: caseId, ErrMsg: err.Error()}
+	}
+
+	err = client.Set(key, val, 0).Err()
+	if err != nil {
+		return &StatusOperationError{Operation: "Set Status :: Set Key", UserId: userId, CorpId: corpId,
+			CaseId: caseId, ErrMsg: err.Error()}
 	}
 
 	return nil
 }
 
-// Update status for multiple cases
-func BatchSetStatus(css []CaseStatus) error {
-	c := Pool.Get()
-	defer c.Close()
-
-	c.Send("MULTI")
-	for _, cs := range(css) {
-		key := toCaseStatusKey(cs.UserId, cs.CorpId, cs.CaseId)
-		c.Send("SET", key, cs.Status)
-	}
-	_, err := c.Do("EXEC")
+func DeleteStatus(cases []CaseStatus) error {
+	client, err := NewConnection()
 	if err != nil {
-		return &StatusOperationError{Operation: "B-SET-STATUS", UserId: "*", CorpId: "*", CaseId: "*", ErrMsg: err.Error()}
+		return err
 	}
 
-	return nil
-}
-
-// Delete case status record
-func DeleteStatus(userId, corpId, caseId string) error {
-	c := Pool.Get()
-	defer c.Close()
-
-	_, err := c.Do("DEL", toCaseStatusKey(userId, corpId, caseId))
-	if err != nil {
-		return &StatusOperationError{Operation: "DEL-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
-			ErrMsg: err.Error()}
+	keys := []string{}
+	for _, c := range(cases) {
+		keys = append(keys, toCaseStatusKey(c.UserId, c.CorpId, c.CaseId))
 	}
 
-	return nil
-}
-
-// Get status of case(s) based on search pattern
-func GetStatusByMatch(userId, corpId, caseId string) ([]CaseStatus, error) {
-	var css []CaseStatus
-	c := Pool.Get()
-	defer c.Close()
-
-	// Setup search pattern given parameters
-	pattern := toCaseStatusPattern(userId, corpId, caseId)
-	if pattern == "<invalid>" {
-		return nil, PATTERN_SETUP_ERR
-	}
-
-	iter := 0
-	for {
-		// Scan using MATCH and the pattern
-		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
+	if len(keys) > 0 {
+		err := client.Del(keys...).Err()
 		if err != nil {
-			return nil, &StatusOperationError{Operation: "SEARCH-STATUS-SCAN", UserId: userId, CorpId: corpId,
-				CaseId: caseId, ErrMsg: err.Error()}
+			return &StatusOperationError{Operation: "Set Status :: Del Keys", UserId: "*", CorpId: "*",
+				CaseId: "*", ErrMsg: err.Error()}
 		}
+	}
 
-		if arr != nil && len(arr) > 0 {
-			// Get a matched key
-			iter, _ = redis.Int(arr[0], nil)
-			ks, _ := redis.Strings(arr[1], nil)
+	return nil
+}
 
-			for _, k := range(ks) {
-				// Get value based on the obtained key
-				v, err := redis.Int(c.Do("GET", k))
-				if err != nil {
-					if err != redis.ErrNil {
-						return css, &StatusOperationError{Operation: "SEARCH-STATUS-GET", UserId: userId,
-							CorpId: corpId, CaseId: caseId, ErrMsg: err.Error()}
-					}
-				}
+func HasUnreadStatus(userId, corpId string) (bool, error) {
 
-				keyItems := strings.Split(k, ":")
+	client, err := NewConnection()
+	if err != nil {
+		return false, err
+	}
 
-				// Store it
-				cs := CaseStatus{
-					UserId: keyItems[1],
-					CorpId: keyItems[2],
-					CaseId: keyItems[3],
-					Status: v,
-				}
-				css = append(css, cs)
+	// Setup key and search pattern given parameters
+	pattern := toCaseStatusPattern(userId, corpId, "")
+	if pattern == "<invalid>" {
+		return false, PATTERN_SETUP_ERR
+	}
+
+	keys, err := client.Keys(pattern).Result()
+	if err != nil {
+		return false, &StatusOperationError{Operation: "Check unread status :: Set Key", UserId: userId, CorpId: corpId,
+			CaseId: "-", ErrMsg: err.Error()}
+	}
+
+	count := len(keys)
+	if count == 0 {
+		return false, nil
+	} else {
+		for _, k :=  range(keys) {
+			v, _ := client.Get(k).Int()
+			if v == 0 {
+				return true, nil
 			}
 		}
 
-		if iter == 0 {
-			break
-		}
+		return false, nil
 	}
-
-	return css, nil
 }
 
-// Get status of a single case
-func GetStatusByKey(userId, corpId, caseId string) (int, error) {
-	c := Pool.Get()
-	defer c.Close()
 
-	v, err := redis.Int(c.Do("GET", toCaseStatusKey(userId, corpId, caseId)))
+func GetStatus(userId, corpId, caseId string) (int, error) {
+	client, err := NewConnection()
 	if err != nil {
-		return -1, &StatusOperationError{Operation: "GET-STATUS", UserId: userId, CorpId: corpId, CaseId: caseId,
-				ErrMsg: err.Error()}
+		return 0, err
+	}
+
+	key := toCaseStatusKey(userId, corpId, caseId)
+	v, err := client.Get(key).Int()
+	if err != nil {
+		if err == redis.Nil {
+			return 0, nil
+		} else {
+			return 0, &StatusOperationError{Operation: "Set Status :: Validate Key", UserId: userId, CorpId: corpId,
+				CaseId: caseId, ErrMsg: err.Error()}
+		}
 	}
 
 	return v, nil
 }
+
+// Make sure user:corpid has status=0
 
 // Convert to a redis key
 func toCaseStatusKey(userId, corpId, caseId string) string {

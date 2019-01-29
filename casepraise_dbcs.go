@@ -1,8 +1,9 @@
 package Dragonfly
 
 import (
+	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis"
 )
 
 /* ---  Error definition --- */
@@ -18,97 +19,64 @@ func (e *PraiseOperationError) Error() string {
 		e.Operation, e.CaseTemplateId, e.UserId, e.ErrMsg)
 }
 
-func SetPraise(caseTemplateId, userId string) (int, error) {
-	newV := -1
-	c := Pool.Get()
-	defer c.Close()
+var PATTERN_SETUP_ERR = errors.New("unable to setup pattern for key matching, userId is empty")
+
+func SetPraise(caseTemplateId, userId string, val int) (int, error) {
+	client, err := NewConnection()
+	if err != nil {
+		return 0, err
+	}
 
 	key := toCasePraiseKey(caseTemplateId, userId)
-	fmt.Println(key)
-
-	v, err := redis.Int(c.Do("GET", key))
-	if err != nil {
-		if err != redis.ErrNil {
-			return newV, &PraiseOperationError{Operation: "GET-PRAISE", CaseTemplateId: caseTemplateId,
-				UserId: userId, ErrMsg: err.Error()}
-		}
-	}
-
-	if v == 1 {
-		newV = 0
-	} else if v == 0 {
-		newV = 1
-	}
-
-	_, err = c.Do("SET", key, newV)
-	if err != nil {
-		return v, &PraiseOperationError{Operation: "SET-PRAISE", CaseTemplateId: caseTemplateId,
+	if _, err := client.Get(key).Result(); err != nil && err != redis.Nil {
+		return 0, &PraiseOperationError{Operation: "Set Praise :: Validate Key", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
-	return newV, nil
+	err = client.Set(key, val, 0).Err()
+	if err != nil {
+		return 0, &PraiseOperationError{Operation: "Set Praise :: Set Key", CaseTemplateId: caseTemplateId,
+			UserId: userId, ErrMsg: err.Error()}
+	}
+
+	return val, nil
 }
 
 func GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
-	count := 0
-	currentV := -1
-
-	c := Pool.Get()
-	defer c.Close()
+	client, err := NewConnection()
+	if err != nil {
+		return 0, 0, err
+	}
 
 	// Setup key and search pattern given parameters
-	key := toCasePraiseKey(caseTemplateId, userId)
 	pattern := toCasePraisePattern(caseTemplateId)
 	if pattern == "<invalid>" {
-		return currentV, count, PATTERN_SETUP_ERR
+		return 0, 0, PATTERN_SETUP_ERR
 	}
 
-	iter := 0
-	for {
-		// Scan using MATCH and the pattern
-		arr, err := redis.Values(c.Do("SCAN", iter, "MATCH", pattern))
-		if err != nil {
-			if err != redis.ErrNil {
-				return currentV, count, &PraiseOperationError{Operation: "SEARCH-PRAISE-SCAN",
-					CaseTemplateId: caseTemplateId, UserId: "*", ErrMsg: err.Error()}
-			}
-		}
-
-		if arr != nil && len(arr) > 0 {
-			// Get a matched key
-			iter, _ = redis.Int(arr[0], nil)
-			ks, _ := redis.Strings(arr[1], nil)
-
-			for _, k := range(ks) {
-				// Get value based on the obtained key
-				v, err := redis.Int(c.Do("GET", k))
-				if err != nil {
-					if err != redis.ErrNil {
-						return currentV, count, &PraiseOperationError{Operation: "SEARCH-STATUS-GET",
-							CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
-					}
-				}
-
-				if v == 1 {
-					count  += 1
-				}
-			}
-
-			if iter == 0 {
-				break
-			}
-		}
-	}
-
-	currentV, err := redis.Int(c.Do("GET", key))
+	keys, err := client.Keys(pattern).Result()
 	if err != nil {
-		if err != redis.ErrNil {
-			return currentV, count, &PraiseOperationError{Operation: "GET-PRAISE", CaseTemplateId: caseTemplateId,
-				UserId: userId, ErrMsg: err.Error()}
-		}
+		return 0, 0, &PraiseOperationError{Operation: "Get Praise Count :: Search Pattern",
+			CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
 	}
 
-	return currentV, count, nil
+	count := len(keys)
+	if count == 0 {
+		return 0, 0, nil
+	} else {
+		key := toCasePraiseKey(caseTemplateId, userId)
+		v, err := client.Get(key).Int()
+		if err != nil {
+			if err != redis.Nil {
+				return 0, count, nil
+			} else {
+				return 0, count, &PraiseOperationError{Operation: "Get Praise Count :: Get value by key",
+				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+			}
+		} else {
+			return v, count, nil
+		}
+	}
 }
 
 // Convert to a redis key

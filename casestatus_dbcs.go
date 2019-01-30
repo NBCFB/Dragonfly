@@ -27,19 +27,15 @@ type CaseStatus struct {
 	Status		int		`json:"status"`
 }
 
-func SetStatus(userId, corpId, caseId string, val int) error {
-	client, err := NewConnection()
-	if err != nil {
-		return err
-	}
+func (c *RedisCallers) SetStatus(userId, corpId, caseId string, val int) error {
 
 	key := toCaseStatusKey(userId, corpId, caseId)
-	if _, err := client.Get(key).Result(); err != nil && err != redis.Nil {
+	if _, err := c.Client.Get(key).Result(); err != nil && err != redis.Nil {
 		return &StatusOperationError{Operation: "Set Status :: Validate Key", UserId: userId, CorpId: corpId,
 			CaseId: caseId, ErrMsg: err.Error()}
 	}
 
-	err = client.Set(key, val, 0).Err()
+	err := c.Client.Set(key, val, 0).Err()
 	if err != nil {
 		return &StatusOperationError{Operation: "Set Status :: Set Key", UserId: userId, CorpId: corpId,
 			CaseId: caseId, ErrMsg: err.Error()}
@@ -48,11 +44,7 @@ func SetStatus(userId, corpId, caseId string, val int) error {
 	return nil
 }
 
-func DeleteStatus(cases []CaseStatus) error {
-	client, err := NewConnection()
-	if err != nil {
-		return err
-	}
+func (c *RedisCallers) DeleteStatus(cases []CaseStatus) error {
 
 	keys := []string{}
 	for _, c := range(cases) {
@@ -60,7 +52,7 @@ func DeleteStatus(cases []CaseStatus) error {
 	}
 
 	if len(keys) > 0 {
-		err := client.Del(keys...).Err()
+		err := c.Client.Del(keys...).Err()
 		if err != nil {
 			return &StatusOperationError{Operation: "Set Status :: Del Keys", UserId: "*", CorpId: "*",
 				CaseId: "*", ErrMsg: err.Error()}
@@ -70,12 +62,7 @@ func DeleteStatus(cases []CaseStatus) error {
 	return nil
 }
 
-func HasUnreadStatus(userId, corpId string) (bool, error) {
-
-	client, err := NewConnection()
-	if err != nil {
-		return false, err
-	}
+func (c *RedisCallers) HasUnreadStatus(userId, corpId string) (bool, error) {
 
 	// Setup key and search pattern given parameters
 	pattern := toCaseStatusPattern(userId, corpId, "")
@@ -83,7 +70,7 @@ func HasUnreadStatus(userId, corpId string) (bool, error) {
 		return false, PATTERN_SETUP_ERR
 	}
 
-	keys, err := client.Keys(pattern).Result()
+	keys, err := c.Client.Keys(pattern).Result()
 	if err != nil {
 		return false, &StatusOperationError{Operation: "Check unread status :: Set Key", UserId: userId, CorpId: corpId,
 			CaseId: "-", ErrMsg: err.Error()}
@@ -94,7 +81,7 @@ func HasUnreadStatus(userId, corpId string) (bool, error) {
 		return false, nil
 	} else {
 		for _, k :=  range(keys) {
-			v, _ := client.Get(k).Int()
+			v, _ := c.Client.Get(k).Int()
 			if v == 0 {
 				return true, nil
 			}
@@ -105,14 +92,10 @@ func HasUnreadStatus(userId, corpId string) (bool, error) {
 }
 
 
-func GetStatus(userId, corpId, caseId string) (int, error) {
-	client, err := NewConnection()
-	if err != nil {
-		return 0, err
-	}
+func (c *RedisCallers) GetStatus(userId, corpId, caseId string) (int, error) {
 
 	key := toCaseStatusKey(userId, corpId, caseId)
-	v, err := client.Get(key).Int()
+	v, err := c.Client.Get(key).Int()
 	if err != nil {
 		if err == redis.Nil {
 			return 0, nil

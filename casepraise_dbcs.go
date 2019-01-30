@@ -21,19 +21,15 @@ func (e *PraiseOperationError) Error() string {
 
 var PATTERN_SETUP_ERR = errors.New("unable to setup pattern for key matching, userId is empty")
 
-func SetPraise(caseTemplateId, userId string, val int) (int, error) {
-	client, err := NewConnection()
-	if err != nil {
-		return 0, err
-	}
+func (c *RedisCallers) SetPraise(caseTemplateId, userId string, val int) (int, error) {
 
 	key := toCasePraiseKey(caseTemplateId, userId)
-	if _, err := client.Get(key).Result(); err != nil && err != redis.Nil {
+	if _, err := c.Client.Get(key).Result(); err != nil && err != redis.Nil {
 		return 0, &PraiseOperationError{Operation: "Set Praise :: Validate Key", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
-	err = client.Set(key, val, 0).Err()
+	err := c.Client.Set(key, val, 0).Err()
 	if err != nil {
 		return 0, &PraiseOperationError{Operation: "Set Praise :: Set Key", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
@@ -42,11 +38,7 @@ func SetPraise(caseTemplateId, userId string, val int) (int, error) {
 	return val, nil
 }
 
-func GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
-	client, err := NewConnection()
-	if err != nil {
-		return 0, 0, err
-	}
+func (c *RedisCallers) GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
 
 	// Setup key and search pattern given parameters
 	pattern := toCasePraisePattern(caseTemplateId)
@@ -54,7 +46,7 @@ func GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
 		return 0, 0, PATTERN_SETUP_ERR
 	}
 
-	keys, err := client.Keys(pattern).Result()
+	keys, err := c.Client.Keys(pattern).Result()
 	if err != nil {
 		return 0, 0, &PraiseOperationError{Operation: "Get Praise Count :: Search Pattern",
 			CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
@@ -65,7 +57,7 @@ func GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
 		return 0, 0, nil
 	} else {
 		key := toCasePraiseKey(caseTemplateId, userId)
-		v, err := client.Get(key).Int()
+		v, err := c.Client.Get(key).Int()
 		if err != nil {
 			if err != redis.Nil {
 				return 0, count, nil

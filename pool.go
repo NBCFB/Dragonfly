@@ -11,7 +11,7 @@ type RedisCallers struct {
 	Client *redis.Client
 }
 
-func NewClient(config *viper.Viper) (*redis.Client, error) {
+func NewCaller(config *viper.Viper) *RedisCallers {
 	mode := config.GetString("Mode")
 	host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
 	pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
@@ -32,15 +32,11 @@ func NewClient(config *viper.Viper) (*redis.Client, error) {
 
 	_, err := redisdb.Ping().Result()
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	return redisdb, nil
-}
-
-func NewCaller(client *redis.Client) *RedisCallers {
 	return &RedisCallers{
-		Client: client,
+		Client: redisdb,
 	}
 }
 

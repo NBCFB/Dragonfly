@@ -21,21 +21,28 @@ func (e *PraiseOperationError) Error() string {
 
 var PATTERN_SETUP_ERR = errors.New("unable to setup pattern for key matching, userId is empty")
 
-func (c *RedisCallers) SetPraise(caseTemplateId, userId string, val int) (int, error) {
+func (c *RedisCallers) SetPraise(caseTemplateId, userId string) (int, error) {
+	status := 0
 
 	key := toCasePraiseKey(caseTemplateId, userId)
-	if _, err := c.Client.Get(key).Result(); err != nil && err != redis.Nil {
+
+	val, err := c.Client.Get(key).Int()
+	if err != nil && err != redis.Nil {
 		return 0, &PraiseOperationError{Operation: "Set Praise :: Validate Key", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
-	err := c.Client.Set(key, val, 0).Err()
+	if val == status {
+		status = 1
+	}
+
+	err = c.Client.Set(key, status, 0).Err()
 	if err != nil {
 		return 0, &PraiseOperationError{Operation: "Set Praise :: Set Key", CaseTemplateId: caseTemplateId,
 			UserId: userId, ErrMsg: err.Error()}
 	}
 
-	return val, nil
+	return status, nil
 }
 
 func (c *RedisCallers) GetPraiseCount(caseTemplateId, userId string) (int, int, error) {
@@ -56,17 +63,31 @@ func (c *RedisCallers) GetPraiseCount(caseTemplateId, userId string) (int, int, 
 	if count == 0 {
 		return 0, 0, nil
 	} else {
+		hasPraiseNum := 0
+
+		for _, value := range keys {
+			v, err := c.Client.Get(value).Int()
+			if err != nil && err != redis.Nil {
+				return 0, hasPraiseNum, &PraiseOperationError{Operation: "Get Praise Count :: Get value by key",
+					CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
+			}
+
+			if v == 1 {
+				hasPraiseNum ++
+			}
+		}
+
 		key := toCasePraiseKey(caseTemplateId, userId)
 		v, err := c.Client.Get(key).Int()
 		if err != nil {
-			if err != redis.Nil {
-				return 0, count, nil
+			if err == redis.Nil {
+				return 0, hasPraiseNum, nil
 			} else {
-				return 0, count, &PraiseOperationError{Operation: "Get Praise Count :: Get value by key",
+				return 0, hasPraiseNum, &PraiseOperationError{Operation: "Get Praise Count :: Get value by key",
 				CaseTemplateId: caseTemplateId, UserId: userId, ErrMsg: err.Error()}
 			}
 		} else {
-			return v, count, nil
+			return v, hasPraiseNum, nil
 		}
 	}
 }

@@ -78,9 +78,9 @@ func (c *RedisCallers) HasUnreadStatus(userId, corpId string) (bool, error) {
 
 	count := len(keys)
 	if count == 0 {
-		return false, nil
+		return true, nil
 	} else {
-		for _, k :=  range(keys) {
+		for _, k :=  range keys {
 			v, _ := c.Client.Get(k).Int()
 			if v == 0 {
 				return true, nil

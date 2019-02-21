@@ -78,7 +78,7 @@ func (c *RedisCallers) HasUnreadStatus(userId, corpId string) (bool, error) {
 
 	count := len(keys)
 	if count == 0 {
-		return true, nil
+		return false, nil
 	} else {
 		for _, k :=  range keys {
 			v, _ := c.Client.Get(k).Int()
@@ -98,9 +98,9 @@ func (c *RedisCallers) GetStatus(userId, corpId, caseId string) (int, error) {
 	v, err := c.Client.Get(key).Int()
 	if err != nil {
 		if err == redis.Nil {
-			return 0, nil
+			return 1, nil
 		} else {
-			return 0, &StatusOperationError{Operation: "Set Status :: Validate Key", UserId: userId, CorpId: corpId,
+			return 1, &StatusOperationError{Operation: "Set Status :: Validate Key", UserId: userId, CorpId: corpId,
 				CaseId: caseId, ErrMsg: err.Error()}
 		}
 	}

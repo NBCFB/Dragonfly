@@ -5,6 +5,7 @@
 Codes for accessing Redis DB
 
 ![](https://thumbs.dreamstime.com/t/angry-boss-warning-sign-red-evil-head-hazard-attention-symbol-danger-road-triangle-terrible-director-81153486.jpg) 
+
 警告：为方便业务代码前移至主项目代码，`case_*`文件暂时保留，他们将在下一次release中被删除。请勿试用他们。
 
 

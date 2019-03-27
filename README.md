@@ -2,7 +2,7 @@
 
 ![CircleCI](https://circleci.com/gh/NBCFB/Dragonfly/tree/develop.svg?style=svg&circle-token=b846cc3cd91a7f556d8db84c7210ee9fbb38944c)
 
-Case Status Service Package
+Codes for accessing Redis DB
 
 
 ## Install 
@@ -33,103 +33,142 @@ Put the configuration for Redis connection into **config.json**, the resulted co
   }
 }
 ```
-You can add multiple configuration block for different **mode** such as 'prod', 'dev'.
+You can add multiple configuration blocks for different **mode** such as 'prod', 'dev'.
 
-### Initialise Pool
-Initilise pool creates a new pool for Redis connections. The pool is a variable defined in **redis_pooler.go**
-```
-var (
-	Pool *redis.Pool
-)
-```
-When server starts, or whenever you are about to start interaction with Redis, call init from **redis_pooler.go**
+### Creat a client (a connection)
 ```
 ...
-init()
+cfg, err := LoadServerConfig()
+...
+caller = NewCaller(cfg)
 ...
 ```
-Then, you can get connection from the created Redis pool
-```
-c := Pool.Get()
-defer c.Close()
-```  
 
-### Model - CaseStatus
-Here is the only model we use it the package
+Dont worry about closing the client. The conn pool will automatically manage the connection. But you can always manually close one:
 ```
-type CaseStatus struct {
-	UserId		string	`json:"userId"`
-	CorpId		string	`json:"corpId"`
-	CaseId		string	`json:"caseId"`
-	Status		int	`json:"status"`
+caller.client.Close()
+```
+
+
+### Set
+Add/update a record in redis DB.
+```
+v, err := caller.Set("key:1", "val:1", 0)
+if err != nil {
+    fmt.Printf("error:%v", err)
 }
 ```
 
-### Change Status
-Here is an example of updating the status of the case(id:1) under corp(id:1) and user(id:1), the new status is 'read'(status:1):
+### Set In Batch
+Add/update multiple records (using one connection) in the redis DB. In this case, you need create a slice of RedisObj first.
 ```
-userId := "1"
-corpId := "1"
-caseId := "1"
-status := 1  // 1 - read, 0 - unread
-err := SetStatus(userId, corpId, caseId string, status int)
+objs := make([]RedisObj, 3)
+objs[0] = RedisObj{K: "key:1", V: "val:1"}
+objs[1] = RedisObj{K: "key:2", V: "val:2"}
+objs[2] = RedisObj{K: "key:3", V: "val:3"}
+...
+err := caller.SetInBatch(objs)
 if err != nil {
-  // Set status failed, do something
-} else {
-  // Set status is successful, do something else
+    fmt.Printf("error:%v", err)
 }
 ```
 
-### Change multiple case status
-You need pass an array of CaseStatus, so that we can update them all at once.
+### Get
+Get a record from the redis DB.
 ```
-err := BatchSetStatus(css []CaseStatus)
-```
-
-### Delete a case status record
-Here is an example of deletion the case(id:1) under corp(id:1) and user(id:1):
-```
-userId := "1"
-corpId := "1"
-caseId := "1" 
-err := DeleteStatus(userId, corpId, caseId string)
-```
-
-### Get status use pattern
-We provide a function that can search keys in redis using pattern. User does not have to specify the search pattern. Instead, we will setup the pattern based on the values of function parameters. **Make sure userId is not empty, otherwise, it raises an error**. The search pattern is setup according to the parameter values:
-- No userId --> Error
-- Got userId but no corpId --> Search 'all the corps under a same user'
-- Got userId, corpId but no caseId --> Search 'all the cases under a same user and a specified corp'
-- Got userId, corpId, caseId --> Search 'a status record of given user, corp and case'
-
-Here is an example of obtaining the status records of corp(id:1) under user(id:1):
-```
-userId := "1"
-corpId := "1"
-caseId := "" // no case Id is specified
-css, err := GetStatusByMatch(userId, corpId, caseId string)
+v, err := caller.Get("key:1")
 if err != nil {
-    // Do something to handle error
-} else {
-    for _, cs := range(css) {
-        // Print out the cs
-        fmt.Sprintf("UserId:%s, CorpId:%s, CaseId:%s, Status:%d", cs.UserId, cs.CorpId, cs.CaseId, cs.Status)
-    }
+    fmt.Printf("error:%v", err)
+}
+```
+
+### Search
+Search record(s) using patten string. 
+
+You can **search with without keywords**. In this case, records that match the search pattern return.
+```
+objs, err := caller.Search("key*", nil)
+if err != nil {
+    fmt.Printf("error:%v", err)
+}
+```
+
+You can **also search with keywords**. In this case, records that match the search pattern and (the values) match one of the keywords return.
+```
+objs, err := caller.Search("key:*", []string{"val:2"})
+if err != nil {
+    fmt.Printf("error:%v", err)
+}
+```
+
+The returned result is a slice of RedisObj which has the structure:
+```
+type RedisObj struct {
+    K string
+    V string
+}
+```
+
+### Delete
+You can delete records by keys.
+```
+err = caller.Del("key:1", "key:2")
+if err != nil {
+    fmt.Printf("error:%v", err)
+}
+```
+
+## Write you test
+We use Behavioral Driven Test Framework [Ginkgo](https://github.com/onsi/ginkgo) to write our test. You have to install Ginkgo and its preferred matcher libs.
+> go get github.com/onsi/ginkgo
+
+> go get github.com/onsi/gomega/...
+
+Every time we write a behavioral driven test, we need create a new client. Thus, we make it happen in `BeforeEach` and `AfterEach`:
+```
+var _ = Describe("Dragonfly", func() {
+    var caller *RedisCallers
+
+    BeforeEach(func() {
+	caller = NewCaller(nil)
+	Expect(caller.Client.FlushDB().Err()).NotTo(HaveOccurred())
+    })
+
+    AfterEach(func() {
+	Expect(caller.Client.Close()).NotTo(HaveOccurred())
+    })
     ...
 }
 ```
 
-### Get status of a single case
-Here is an example of obtaining the status of the case(id:1) under corp(id:1) and user(id:1):
+Then you can write your test case like this:
 ```
-userId := "1"
-corpId := "1"
-caseId := "1"
-status, err := GetStatusByKey(userId, corpId, caseId string)
-if err != nil {
-    // Do something to handle the error
-} else {
-    // Print status
-    fmt.Println("Status:", status)
-}
+var _ = Describe("Dragonfly", func() {
+    var caller *RedisCallers
+
+    BeforeEach(func() {
+	caller = NewCaller(nil)
+	Expect(caller.Client.FlushDB().Err()).NotTo(HaveOccurred())
+    })
+
+    AfterEach(func() {
+	Expect(caller.Client.Close()).NotTo(HaveOccurred())
+    })
+    ...
+    
+    It("can set in batch", func() {
+    	objs := make([]RedisObj, 3)
+    	objs[0] = RedisObj{K: "key:1", V: "val:1"}
+    	objs[1] = RedisObj{K: "key:2", V: "val:2"}
+    	objs[2] = RedisObj{K: "key:3", V: "val:3"}
+
+    	err := caller.SetInBatch(objs)
+	Expect(err).NotTo(HaveOccurred())
+
+	expected, _ := caller.Search("key*", nil)
+	Expect(len(expected)).To(Equal(3))
+
+    })
+...
+})
 ```

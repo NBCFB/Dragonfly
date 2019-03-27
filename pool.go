@@ -1,6 +1,7 @@
 package Dragonfly
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
 	"time"
@@ -11,27 +12,30 @@ type RedisCallers struct {
 }
 
 func NewCaller(config *viper.Viper) *RedisCallers {
-	//mode := config.GetString("Mode")
-	//host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
-	//pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
-	host := "172.18.1.103"
-	pass := "401BoogiesFightes307Woogies"
 
-	c := redis.NewFailoverClient(&redis.FailoverOptions{
-		MasterName:		"mymaster",
-		SentinelAddrs: 	[]string{ host + ":26379" },
-		Password: 		pass,
+	if config != nil {
+		mode := config.GetString("Mode")
+		host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
+		pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
 
-		MaxRetries:     3,
+		c := redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    "mymaster",
+			SentinelAddrs: []string{host + ":26379"},
+			Password:      pass,
 
-		DialTimeout:	500 * time.Millisecond,
-		ReadTimeout:	500 * time.Millisecond,
-		WriteTimeout:	500 * time.Millisecond,
+			MaxRetries: 3,
 
-		PoolSize:       10000,
-	})
+			DialTimeout:  500 * time.Millisecond,
+			ReadTimeout:  500 * time.Millisecond,
+			WriteTimeout: 500 * time.Millisecond,
 
-	return &RedisCallers{
-		Client: c,
+			PoolSize: 10000,
+		})
+
+		return &RedisCallers{
+			Client: c,
+		}
+	} else {
+		return nil
 	}
 }

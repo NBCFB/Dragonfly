@@ -28,6 +28,10 @@ jobs:
     - run:
         name: Install Package
         command: |
+          go get github.com/go-redis/redis
+          go get github.com/spf13/viper
+          go get github.com/onsi/ginkgo
+          go get github.com/onsi/gomega
           go get -d .
 
     # Test

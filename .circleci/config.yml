@@ -5,7 +5,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.12
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
@@ -21,7 +21,7 @@ jobs:
     - run:
         name: Install Package
         command: |
-          go get -d
+          go get -d .
 
     # Test
     - run:

@@ -120,9 +120,15 @@ if err != nil {
 
 ## Write you test
 We use Behavioral Driven Test Framework [Ginkgo](https://github.com/onsi/ginkgo) to write our test. You have to install Ginkgo and its preferred matcher libs.
-> go get github.com/onsi/ginkgo
+```
+go get github.com/onsi/ginkgo
+go get github.com/onsi/gomega/...
+```
 
-> go get github.com/onsi/gomega/...
+Make sure you also install the ginkgo CLI so that you can generate your own test suite.
+```
+go get github.com/onsi/ginkgo/ginkgo
+```
 
 Every time we write a behavioral driven test, we need create a new client. Thus, we make it happen in `BeforeEach` and `AfterEach`:
 ```

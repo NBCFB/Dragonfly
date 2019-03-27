@@ -5,7 +5,9 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12
+    - image: circleci/golang:1.12
+
+    working_directory: /go/src/github.com/NBCFB/Dragonfly
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
@@ -13,9 +15,14 @@ jobs:
     steps:
     - checkout
 
+    # Log the current branch
+    - run:
+        name: Show current branch
+        command: echo ${CIRCLE_BRANCH}
+
     - restore_cache:
         keys:
-          - go-mod-v1-{{ checksum "go.sum" }}
+        - go-mod-v1-{{ checksum "go.sum" }}
 
     # Install dependency
     - run:

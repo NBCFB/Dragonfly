@@ -16,7 +16,7 @@ jobs:
     - restore_cache:
         keys:
           - go-mod-v1-{{ checksum "go.sum" }}
-          -
+
     # Install dependency
     - run:
         name: Install Package

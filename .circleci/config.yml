@@ -34,12 +34,12 @@ jobs:
           go get github.com/onsi/gomega
           go get -d .
 
-    # Test
-    - run:
-        name: Run test
-        command: |
-          mkdir -p ${TEST_RESULTS} # Make test result folder
-          go test -v . | tee $TEST_RESULTS/go-test.out
+#    # Test
+#    - run:
+#        name: Run test
+#        command: |
+#          mkdir -p ${TEST_RESULTS} # Make test result folder
+#          go test -v . | tee $TEST_RESULTS/go-test.out
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

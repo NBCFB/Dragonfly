@@ -3,6 +3,7 @@ package Dragonfly_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 
 	. "github.com/NBCFB/Dragonfly"
 )
@@ -11,7 +12,19 @@ var _ = Describe("Dragonfly", func() {
 	var caller *RedisCallers
 
 	BeforeEach(func() {
-		caller = NewCaller(nil)
+		// Set server config
+		serverConfig := viper.New()
+		serverConfig.SetConfigName("config")
+		serverConfig.AddConfigPath("/NBCFB/config/")
+		serverConfig.SetConfigType("json")
+
+		// Read config file
+		err := serverConfig.ReadInConfig()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(serverConfig.Get("mode")).To(Equal("test"))
+		Expect(serverConfig.Get("test.redisDB.host")).To(Equal("172.18.1.103"))
+
+		caller = NewCaller(serverConfig)
 		Expect(caller.Client.FlushDB().Err()).NotTo(HaveOccurred())
 	})
 

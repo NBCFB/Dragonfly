@@ -32,7 +32,7 @@ type RedisCallers struct {
 	Client *redis.Client
 }
 
-// Initialises a new caller.
+// NewCaller initialises a new connection client to the redis DB.
 func NewCaller(config *viper.Viper) *RedisCallers {
 
 	if config != nil {
@@ -116,7 +116,6 @@ func (c *RedisCallers) SetInBatch(objs []RedisObj) (err error) {
 		ErrMsg: "batch is empty",
 	}
 }
-
 
 // Get gets an entry by its key.
 func (c *RedisCallers) Get(k string) (v string, err error) {

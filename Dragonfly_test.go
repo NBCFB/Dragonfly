@@ -138,7 +138,7 @@ var _ = Describe("Dragonfly", func() {
 		err = caller.Del("key:1")
 		Expect(err).NotTo(HaveOccurred())
 
-		objs, err := caller.Search("key*", nil)
+		objs, _ := caller.Search("key*", nil)
 		Expect(len(objs)).To(Equal(1))
 
 		err = caller.Del("ghost_key:1")

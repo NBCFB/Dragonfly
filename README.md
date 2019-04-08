@@ -21,8 +21,8 @@ Put the configuration for Redis connection into **config.json**, the resulted co
     },
     
     "redisDB": {
-      "host":             "172.18.1.187",
-      "pass":             "ilovedragonfly1515",
+      "host":             "localhost",
+      "pass":             "",
       "maxIdle":          5,
       "maxActive":        12000,
       "maxConnLifetime":  3,

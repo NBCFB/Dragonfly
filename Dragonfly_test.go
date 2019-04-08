@@ -104,7 +104,7 @@ var _ = Describe("Dragonfly", func() {
 		Expect(len(objs)).To(Equal(0))
 	})
 
-	It("can search wih keywords", func() {
+	It("can search with keywords", func() {
 		_, err := caller.Set("key:1", "val:1", 0)
 		Expect(err).NotTo(HaveOccurred())
 

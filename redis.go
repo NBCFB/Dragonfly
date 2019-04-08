@@ -2,26 +2,67 @@ package Dragonfly
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
+	"github.com/spf13/viper"
 	"strings"
 	"time"
 )
 
-type RedisError struct {
-	Action		string
-	Key			string
-	Val			string
-	ErrMsg		string
-}
-
+// A RedisObj represents an object with string typed key and value.
 type RedisObj struct {
 	K string
 	V string
 }
 
+// A RedisError represents a structured redis error.
+type RedisError struct {
+	Action string
+	Key    string
+	Val    string
+	ErrMsg string
+}
+
+// Error returns a formatted redis error message.
 func (e *RedisError) Error() string {
 	return fmt.Sprintf("Action[%s] Key=%s, Val=%s, %s", e.Action, e.Key, e.Val, e.ErrMsg)
 }
 
+// RedisCallers represent a client that connects to our redis DB.
+type RedisCallers struct {
+	Client *redis.Client
+}
+
+// Initialises a new caller.
+func NewCaller(config *viper.Viper) *RedisCallers {
+
+	if config != nil {
+		mode := config.GetString("Mode")
+		host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
+		pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
+
+		c := redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    "mymaster",
+			SentinelAddrs: []string{host + ":26379"},
+			Password:      pass,
+
+			MaxRetries: 3,
+
+			DialTimeout:  500 * time.Millisecond,
+			ReadTimeout:  500 * time.Millisecond,
+			WriteTimeout: 500 * time.Millisecond,
+
+			PoolSize: 10000,
+		})
+
+		return &RedisCallers{
+			Client: c,
+		}
+	}
+
+	return nil
+}
+
+// Set creates a new entry or updates an existed entry with a specified lifetime, the default lifetime is zero.
 func (c *RedisCallers) Set(k, v string, exp time.Duration) (newVal string, err error) {
 	if validate(k, v) {
 		_, err = c.Client.Set(k, v, exp).Result()
@@ -45,6 +86,7 @@ func (c *RedisCallers) Set(k, v string, exp time.Duration) (newVal string, err e
 	return v, nil
 }
 
+// SetInBatch creates multiple new entries or updates multiple existed entries given by a slice of RedisObj
 func (c *RedisCallers) SetInBatch(objs []RedisObj) (err error) {
 	if len(objs) > 0 {
 		var errKeys []string
@@ -65,17 +107,18 @@ func (c *RedisCallers) SetInBatch(objs []RedisObj) (err error) {
 		}
 
 		return err
+	}
 
-	} else {
-		return &RedisError{
-			Action: "Set",
-			Key:    "*",
-			Val:    "*",
-			ErrMsg: "batch is empty",
-		}
+	return &RedisError{
+		Action: "Set",
+		Key:    "*",
+		Val:    "*",
+		ErrMsg: "batch is empty",
 	}
 }
 
+
+// Get gets an entry by its key.
 func (c *RedisCallers) Get(k string) (v string, err error) {
 	if validate(k) {
 		v, err = c.Client.Get(k).Result()
@@ -99,6 +142,11 @@ func (c *RedisCallers) Get(k string) (v string, err error) {
 	return v, nil
 }
 
+// Search returns any entries that fulfills the given search patten and keywords. Pattern is used to check the key
+// while keywords are used to check the values of the matched keys.
+// For example, assume we have {'user:1', 'aaa'}, {'user:2', 'abc'}, {'user:3', 'bbb'} three entries,
+// if the given pattern is 'user:*' and the keywords is ['a'],
+// the returned entries are:  {'user:1', 'aaa'}, {'user:2', 'abc'}.
 func (c *RedisCallers) Search(patten string, keywords []string) (objs []RedisObj, err error) {
 	if validate(patten) {
 		scanCmd := c.Client.Scan(0, patten, -1)
@@ -157,6 +205,7 @@ func (c *RedisCallers) Search(patten string, keywords []string) (objs []RedisObj
 	return objs, err
 }
 
+// Del deletes entries by their keys
 func (c *RedisCallers) Del(keys ...string) error {
 	if validate(keys...) {
 		err := c.Client.Del(keys...).Err()
@@ -180,6 +229,7 @@ func (c *RedisCallers) Del(keys ...string) error {
 	return nil
 }
 
+// validate checks if inputs are empty
 func validate(args ...string) (ok bool) {
 	for _, arg := range args {
 		a := strings.TrimSpace(arg)
@@ -191,6 +241,7 @@ func validate(args ...string) (ok bool) {
 	return true
 }
 
+// joinKey converts a collection of keys to a string
 func joinKey(keys ...string) string {
 	ks := ""
 	for _, k := range keys {
@@ -200,6 +251,7 @@ func joinKey(keys ...string) string {
 	return ks
 }
 
+// match checks if a string contains any of the keyword in arg keywords
 func match(str string, keywords ...string) bool {
 	for _, k := range keywords {
 		if str == k {

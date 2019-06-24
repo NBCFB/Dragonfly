@@ -33,7 +33,7 @@ type RedisCallers struct {
 }
 
 // NewCaller initialises a new connection client to the redis DB.
-func NewCaller(config *viper.Viper) *RedisCallers {
+func NewCallerSentinel(config *viper.Viper) *RedisCallers {
 
 	if config != nil {
 		mode := config.GetString("Mode")
@@ -44,6 +44,34 @@ func NewCaller(config *viper.Viper) *RedisCallers {
 			MasterName:    "mymaster",
 			SentinelAddrs: []string{host + ":26379"},
 			Password:      pass,
+
+			MaxRetries: 3,
+
+			DialTimeout:  500 * time.Millisecond,
+			ReadTimeout:  500 * time.Millisecond,
+			WriteTimeout: 500 * time.Millisecond,
+
+			PoolSize: 10000,
+		})
+
+		return &RedisCallers{
+			Client: c,
+		}
+	}
+
+	return nil
+}
+
+func NewCaller(config *viper.Viper) *RedisCallers {
+
+	if config != nil {
+		mode := config.GetString("Mode")
+		host := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "host"))
+		pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
+
+		c := redis.NewClient(&redis.Options{
+			Addr:       host + ":6379",
+			Password:   pass,
 
 			MaxRetries: 3,
 

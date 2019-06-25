@@ -183,6 +183,7 @@ func (c *RedisCallers) SearchByScan(patten string, keywords []string, count int6
 		}
 
 		keys, _ := scanCmd.Val()
+
 		values := c.Client.MGet(keys...).Val()
 
 		if len(values) == len(keys) {
@@ -222,7 +223,6 @@ func (c *RedisCallers) SearchByScan(patten string, keywords []string, count int6
 			ErrMsg: "pattern is empty",
 		}
 	}
-
 	return objs, err
 }
 
@@ -269,7 +269,6 @@ func (c *RedisCallers) SearchByKeys(patten string, keywords []string) (objs []Re
 			ErrMsg: "pattern is empty",
 		}
 	}
-
 	return objs, err
 }
 

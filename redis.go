@@ -176,13 +176,17 @@ func (c *RedisCallers) Get(k string) (v string, err error) {
 // * Using scan when keySpace is big
 func (c *RedisCallers) SearchByScan(patten string, keywords []string, count int64) (objs []RedisObj, err error) {
 	if validate(patten) {
+		var keys []string
 		scanCmd := c.Client.Scan(0, patten, count)
 		err = scanCmd.Err()
 		if err != nil {
 			return objs, nil
 		}
+		iter := scanCmd.Iterator()
 
-		keys, _ := scanCmd.Val()
+		for iter.Next() {
+			keys = append(keys, iter.Val())
+		}
 
 		values := c.Client.MGet(keys...).Val()
 

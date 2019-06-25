@@ -70,8 +70,8 @@ func NewCaller(config *viper.Viper) *RedisCallers {
 		pass := config.GetString(fmt.Sprintf("%v.%v.%v", mode, "redisDB", "pass"))
 
 		c := redis.NewClient(&redis.Options{
-			Addr:       host + ":6379",
-			Password:   pass,
+			Addr:     host + ":6379",
+			Password: pass,
 
 			MaxRetries: 3,
 
@@ -117,24 +117,23 @@ func (c *RedisCallers) Set(k, v string, exp time.Duration) (newVal string, err e
 // SetInBatch creates multiple new entries or updates multiple existed entries given by a slice of RedisObj
 func (c *RedisCallers) SetInBatch(objs []RedisObj) (err error) {
 	if len(objs) > 0 {
-		var errKeys []string
+		var KVList []string
 		for _, obj := range objs {
-			_, e := c.Set(obj.K, obj.V, 0)
-			if e != nil {
-				errKeys = append(errKeys, obj.K)
-			}
+			KVList = append(KVList, obj.K, obj.V)
 		}
 
-		if len(errKeys) > 0 {
+		statusCmd := c.Client.MSet(KVList)
+
+		if statusCmd.Err() != nil {
 			err = &RedisError{
 				Action: "Set - In Batch",
 				Key:    "*",
 				Val:    "*",
-				ErrMsg: fmt.Sprintf("error occurs when setting keys:[%v]", errKeys),
+				ErrMsg: fmt.Sprintf("error occurs when setting keys:[%#v]", objs),
 			}
 		}
 
-		return err
+		return
 	}
 
 	return &RedisError{
@@ -174,52 +173,47 @@ func (c *RedisCallers) Get(k string) (v string, err error) {
 // For example, assume we have {'user:1', 'aaa'}, {'user:2', 'abc'}, {'user:3', 'bbb'} three entries,
 // if the given pattern is 'user:*' and the keywords is ['a'],
 // the returned entries are:  {'user:1', 'aaa'}, {'user:2', 'abc'}.
-func (c *RedisCallers) Search(patten string, keywords []string) (objs []RedisObj, err error) {
+// * Using scan when keySpace is big
+func (c *RedisCallers) SearchByScan(patten string, keywords []string, count int64) (objs []RedisObj, err error) {
 	if validate(patten) {
-		scanCmd := c.Client.Scan(0, patten, -1)
+		scanCmd := c.Client.Scan(0, patten, count)
 		err = scanCmd.Err()
 		if err != nil {
 			return objs, nil
 		}
 
-		iter := scanCmd.Iterator()
+		keys, _ := scanCmd.Val()
+		values := c.Client.MGet(keys...).Val()
 
-		var errKeys []string
-		for iter.Next() {
-			k := iter.Val()
-			v, e := c.Get(k)
-
-			if e == nil {
+		if len(values) == len(keys) {
+			for idx, key := range keys {
 				if len(keywords) > 0 {
-					if match(v, keywords...) {
+					if match(values[idx].(string), keywords...) {
 						obj := RedisObj{
-							K: k,
-							V: v,
+							K: key,
+							V: values[idx].(string),
 						}
 
 						objs = append(objs, obj)
 					}
 				} else {
 					obj := RedisObj{
-						K: k,
-						V: v,
+						K: key,
+						V: values[idx].(string),
 					}
 
 					objs = append(objs, obj)
 				}
-			} else {
-				errKeys = append(errKeys, k)
+			}
+		} else {
+			return objs, &RedisError{
+				Action: "Search",
+				Key:    "*",
+				Val:    "*",
+				ErrMsg: "Keys and values not match",
 			}
 		}
 
-		if len(errKeys) > 0 {
-			err = &RedisError{
-				Action: "Search - Iterate",
-				Key:    "*",
-				Val:    "*",
-				ErrMsg: fmt.Sprintf("error occurs when getting keys:[%v]", errKeys),
-			}
-		}
 	} else {
 		return objs, &RedisError{
 			Action: "Search",
@@ -231,6 +225,54 @@ func (c *RedisCallers) Search(patten string, keywords []string) (objs []RedisObj
 
 	return objs, err
 }
+
+// * Using scan when keySpace is small
+func (c *RedisCallers) SearchByKeys(patten string, keywords []string) (objs []RedisObj, err error) {
+	if validate(patten) {
+		keys := c.Client.Keys(patten).Val()
+		values := c.Client.MGet(keys...).Val()
+
+		if len(values) == len(keys) {
+			for idx, key := range keys {
+				if len(keywords) > 0 {
+					if match(values[idx].(string), keywords...) {
+						obj := RedisObj{
+							K: key,
+							V: values[idx].(string),
+						}
+
+						objs = append(objs, obj)
+					}
+				} else {
+					obj := RedisObj{
+						K: key,
+						V: values[idx].(string),
+					}
+
+					objs = append(objs, obj)
+				}
+			}
+		} else {
+			return objs, &RedisError{
+				Action: "Search",
+				Key:    "*",
+				Val:    "*",
+				ErrMsg: "Keys and values not match",
+			}
+		}
+
+	} else {
+		return objs, &RedisError{
+			Action: "Search",
+			Key:    "*",
+			Val:    "*",
+			ErrMsg: "pattern is empty",
+		}
+	}
+
+	return objs, err
+}
+
 
 // Del deletes entries by their keys
 func (c *RedisCallers) Del(keys ...string) error {

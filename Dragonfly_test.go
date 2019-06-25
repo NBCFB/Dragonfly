@@ -52,7 +52,7 @@ var _ = Describe("Dragonfly", func() {
 		err := caller.SetInBatch(objs)
 		Expect(err).NotTo(HaveOccurred())
 
-		expected, _ := caller.Search("key*", nil)
+		expected, _ := caller.SearchByKeys("key*", nil)
 		Expect(len(expected)).To(Equal(3))
 
 	})
@@ -94,12 +94,12 @@ var _ = Describe("Dragonfly", func() {
 		_, err = caller.Set("wired_key:2", "val:1", 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		objs, err := caller.Search("key*", nil)
+		objs, err := caller.SearchByKeys("key*", nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objs)).To(Equal(2))
 		Expect(objs).To(Equal([]RedisObj{{K: "key:1", V: "val:1"}, {K: "key:2", V: "val:2"}}))
 
-		objs, err = caller.Search("ghost_key*", nil)
+		objs, err = caller.SearchByKeys("ghost_key*", nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objs)).To(Equal(0))
 	})
@@ -111,7 +111,7 @@ var _ = Describe("Dragonfly", func() {
 		_, err = caller.Set("key:2", "val:2", 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		objs, err := caller.Search("key:*", []string{"val:2"})
+		objs, err := caller.SearchByKeys("key:*", []string{"val:2"})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objs)).To(Equal(1))
 		Expect(objs).To(Equal([]RedisObj{{K: "key:2", V: "val:2"}}))
@@ -124,7 +124,7 @@ var _ = Describe("Dragonfly", func() {
 		_, err = caller.Set("key:2", "val:2", 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = caller.Search("", []string{"val:2"})
+		_, err = caller.SearchByKeys("", []string{"val:2"})
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -138,7 +138,7 @@ var _ = Describe("Dragonfly", func() {
 		err = caller.Del("key:1")
 		Expect(err).NotTo(HaveOccurred())
 
-		objs, _ := caller.Search("key*", nil)
+		objs, _ := caller.SearchByKeys("key*", nil)
 		Expect(len(objs)).To(Equal(1))
 
 		err = caller.Del("ghost_key:1")

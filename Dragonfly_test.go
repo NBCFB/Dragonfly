@@ -14,15 +14,13 @@ var _ = Describe("Dragonfly", func() {
 	BeforeEach(func() {
 		// Set server config
 		serverConfig := viper.New()
-		serverConfig.SetConfigName("config")
-		serverConfig.AddConfigPath("/NBCFB/config/")
+		serverConfig.SetConfigName("test_config")
 		serverConfig.SetConfigType("json")
 
 		// Read config file
 		err := serverConfig.ReadInConfig()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(serverConfig.Get("mode")).To(Equal("test"))
-		Expect(serverConfig.Get("test.redisDB.host")).To(Equal("172.18.1.103"))
+		Expect(serverConfig.Get("test.redisDB.host")).To(Equal("127.0.0.1"))
 
 		caller = NewCaller(serverConfig)
 		Expect(caller.Client.FlushDB().Err()).NotTo(HaveOccurred())

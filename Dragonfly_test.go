@@ -14,7 +14,8 @@ var _ = Describe("Dragonfly", func() {
 	BeforeEach(func() {
 		// Set server config
 		serverConfig := viper.New()
-		serverConfig.SetConfigName("test_config")
+		serverConfig.AddConfigPath(".")
+		serverConfig.SetConfigName("test-config")
 		serverConfig.SetConfigType("json")
 
 		// Read config file

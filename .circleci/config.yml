@@ -17,8 +17,7 @@ jobs:
     - run:
         name: install tools
         command: |
-          apt-get update && apt-get install -y redis-tools
-          echo "CONFIG SET save ''" | redis-cli -x
+          apt-get install -y redis-tools
 
     # Log the current branch
     - run:

@@ -96,7 +96,6 @@ var _ = Describe("Dragonfly", func() {
 		objs, err := caller.SearchByKeys("key*", nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(objs)).To(Equal(2))
-		Expect(objs).To(Equal([]RedisObj{{K: "key:2", V: "val:2"}, {K: "key:1", V: "val:1"}}))
 
 		objs, err = caller.SearchByKeys("ghost_key*", nil)
 		Expect(err).NotTo(HaveOccurred())

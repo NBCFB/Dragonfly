@@ -6,6 +6,7 @@ jobs:
   build:
     docker:
     - image: circleci/golang:1.12
+    - image: circleci/redis:4.0.9
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
@@ -21,6 +22,10 @@ jobs:
     - restore_cache:
         keys:
         - go-mod-v1-{{ checksum "go.sum" }}
+
+    - run:
+        name: Run redis
+        command: redis-cli ping
 
 #    # Test
 #    - run:

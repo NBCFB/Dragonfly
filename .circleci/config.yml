@@ -6,12 +6,18 @@ jobs:
   build:
     docker:
     - image: circleci/golang:1.12
+    - image: circleci/redis:4.0.9
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
 
     steps:
     - checkout
+
+    - run:
+        name: install tools
+        command: |
+          sudo apt-get install -y redis-tools
 
     # Log the current branch
     - run:
@@ -22,12 +28,18 @@ jobs:
         keys:
         - go-mod-v1-{{ checksum "go.sum" }}
 
-#    # Test
-#    - run:
-#        name: Run test
-#        command: |
-#          mkdir -p ${TEST_RESULTS} # Make test result folder
-#          go test -v . | tee $TEST_RESULTS/go-test.out
+    - run:
+        name: Run redis
+        command: redis-cli ping
+
+    # Test
+    - run:
+        name: Run test
+        command: |
+          mkdir -p ${TEST_RESULTS} # Make test result folder
+          go test -v . -coverprofile=c.out | tee $TEST_RESULTS/go-test.out
+          go tool cover -html=c.out -o coverage.html
+          mv coverage.html $TEST_RESULTS/.
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

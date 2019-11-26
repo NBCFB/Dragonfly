@@ -37,7 +37,9 @@ jobs:
         name: Run test
         command: |
           mkdir -p ${TEST_RESULTS} # Make test result folder
-          go test -v . | tee $TEST_RESULTS/go-test.out
+          go test -v . -coverprofile=c.out | tee $TEST_RESULTS/go-test.out
+          go tool cover -html=c.out -o coverage.html
+          mv coverage.html $TEST_RESULTS/.
 
     - save_cache:
         key: go-mod-v1-{{ checksum "go.sum" }}

@@ -36,14 +36,14 @@ jobs:
     
     - name: Run test
       run: |
-        mkdir -p ~/tmp/test_results
-        mkdir -p ~/artifacts
-        go test -v . -coverprofile=c.out | tee ~/tmp/test_results/go-test.out
-        go tool cover -html=c.out -o ~/artifacts/coverage.html
+        mkdir -p /tmp/test_results
+        mkdir -p /tmp/artifacts
+        go test -v . -coverprofile=c.out | tee /tmp/test_results/go-test.out
+        go tool cover -html=c.out -o /tmp/artifacts/coverage.html
     
     - name: Upload artifact
       uses: actions/upload-artifact@v1
       with:
         name: dragonfly-test-results
-        path: ~/artifacts
+        path: /tmp/artifacts
 

@@ -1,0 +1,49 @@
+name: Go
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    
+    - name: Setup Redis
+      uses: zhulik/redis-action@1.1.0
+      with:
+        redis version: 5
+        number of databases: 1
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    
+    - name: install redis-cli
+      run: |
+        sudo apt-get install -y redis-tools
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+        if [ -f Gopkg.toml ]; then
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
+        fi
+    
+    - name: Run test
+      run: |
+        mkdir -p /tmp/test_results
+        mkdir -p /tmp/artifacts
+        go test -v . -coverprofile=c.out | tee /tmp/test_results/go-test.out
+        go tool cover -html=c.out -o /tmp/artifacts/coverage.html
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: dragonfly-test-results
+        path: /tmp/artifacts
+

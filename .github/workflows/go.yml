@@ -36,11 +36,11 @@ jobs:
     
     - name: Run test
       run: |
-        mkdir -p /tmp/test_results
-        mkdir -p /artifacts
+        sudo mkdir -p /tmp/test_results
+        sudo mkdir -p /artifacts
         go test -v . -coverprofile=c.out | tee /tmp/test_results/go-test.out
         go tool cover -html=c.out -o coverage.html
-        mv coverage.html /artifacts/.
+        sudo mv coverage.html /artifacts/.
     
     - name: Upload artifact
       uses: actions/upload-artifact@v1

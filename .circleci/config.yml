@@ -32,6 +32,16 @@ jobs:
         name: Run redis
         command: redis-cli ping
 
+    # Checkout mod and sum files
+    - run:
+        name: Run mod tidy
+        command: |
+          go mod tidy
+          STATUS=$( git status --porcelain go.mod go.sum )
+          if [ ! -z "$STATUS" ]; then
+            echo ".mod and .sum modified."
+          fi
+
     # Test
     - run:
         name: Run test
